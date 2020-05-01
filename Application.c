@@ -26,6 +26,7 @@
 #define SCREEN2 2 //Game Screen
 #define SCREEN3 3 //How to Play instructions screen
 #define SCREEN4 4 //High Scores Screen
+#define SCREEN5 5 //Game Over Screen
 #define FIXED 1
 #define CHANGES 0
 #define MINSCREENTIME 500
@@ -100,6 +101,12 @@ Application Application_construct()
     app.menuscreen = SWTimer_construct(MINSCREENTIME); //minimum time to display main menu
     SWTimer_start(&app.menuscreen);
 
+    app.gamescreen = SWTimer_construct(MINSCREENTIME); //minimum time to display main menu
+    SWTimer_start(&app.gamescreen);
+
+    app.gameoverscreen = SWTimer_construct(MINSCREENTIME); //minimum time to display main menu
+    SWTimer_start(&app.gameoverscreen);
+
     app.shieldtime = SWTimer_construct(1500); //minimum time to display main menu
     SWTimer_start(&app.shieldtime);
 
@@ -125,7 +132,13 @@ Application Application_construct()
 
     app.score = 0; //players start with a zero (0) score
 
-    app.game_just_started = true;
+    app.scores[0] = 0;
+    app.scores[1] = 0;
+    app.scores[2] = 0;
+    app.scores[3] = 0;
+    app.scores[4] = 0;
+
+    app.game_has_started = true;
 
     app.dead_danger = true; // game starts with a new danger when a danger is killed
 
@@ -179,6 +192,9 @@ void Application_loop(Application* app, HAL* hal)
 
     if(app->SCREENMODE == SCREEN4)
         highscores_screen(app, hal);
+
+    if(app->SCREENMODE == SCREEN5)
+        gameoverscreen(app, hal);
 }
 
 void splash_screen(Application* app, HAL* hal)
@@ -247,6 +263,12 @@ void playgame_screen(Application* app, HAL* hal)
     dangers(app, hal);
 
     app->STATIC_SCREEN_MODE = FIXED;
+
+    if(app->health == 0 && app->game_has_started == false && SWTimer_expired(&app->gamescreen))
+    {
+        app->SCREENMODE = SCREEN5;
+        app->STATIC_SCREEN_MODE = CHANGES;
+    }
 }
 
 void howtoplay_screen(Application* app, HAL* hal)
@@ -310,6 +332,74 @@ void highscores_screen(Application* app, HAL* hal)
         app->STATIC_SCREEN_MODE = CHANGES;
         SWTimer_start(&app->highscoresscreen);
     }
+}
+
+void scores_sort(Application* app, HAL* hal)
+{
+    int i, j;
+    static int temp;
+        for (i = 0; i < 4; i++)
+        // Last i elements are already in place
+        for (j = 0; j < 4-i; j++)
+            if (arr[j] > arr[j+1])
+            {
+                int temp = &app->scores[j];
+                &app->scores[j] = &app->scores[j+1];
+                &app->scores[j+1] = temp;
+            }
+}
+
+void gameoverscreen(Application* app, HAL* hal)
+{
+    bbgdisplay(app, hal);
+                        Graphics_setForegroundColor(&app->gfx.context, GRAPHICS_COLOR_WHITE);
+                        Graphics_setFont(&app->gfx.context, &g_sFontCm18b);
+                        Graphics_drawString(&app->gfx.context, "GAME OVER", -1, 8, 90, false);
+                        Graphics_drawString(&app->gfx.context, "Score: ", -1, 15, 110, false);
+
+                        char buffer[BUFFER_SIZE];
+                        snprintf(buffer, BUFFER_SIZE, "%d ", app->score);
+                        Graphics_drawString(&app->gfx.context, (int8_t*) buffer, -1, 70, 110, true);
+
+                        Graphics_setForegroundColor(&app->gfx.context, GRAPHICS_COLOR_RED);
+                        Graphics_drawLineV(&app->gfx.context, 40, 25, 70);
+                        Graphics_drawLineV(&app->gfx.context, 39, 26, 70);
+                        Graphics_drawLineV(&app->gfx.context, 90, 25, 70);
+                        Graphics_drawLineV(&app->gfx.context, 91, 26, 70);
+                        Graphics_drawLine(&app->gfx.context, 40, 70, 90, 70);
+                        Graphics_drawLine(&app->gfx.context, 39, 70, 91, 70);
+
+                        if(app->STATIC_SCREEN_MODE != FIXED)
+                        {
+                            GFX_drawHollowCircle(&app->gfx, 65, 30, 25);
+                            GFX_drawHollowCircle(&app->gfx, 65, 30, 24);
+                            GFX_drawHollowCircle(&app->gfx, 65, 30, 23);
+                        }
+
+                        Graphics_setForegroundColor(&app->gfx.context, GRAPHICS_COLOR_RED);
+                        Graphics_Rectangle box;
+                        box.xMin = 41;
+                        box.xMax = 89;
+                        box.yMin = 26;
+                        box.yMax = 69;
+                        Graphics_setForegroundColor(&app->gfx.context, GRAPHICS_COLOR_BLACK);
+                        Graphics_drawRectangle(&app->gfx.context, &box);
+                        Graphics_fillRectangle(&app->gfx.context, &box);
+
+                        Graphics_setFont(&app->gfx.context, &g_sFontCm12b);
+                        Graphics_setForegroundColor(&app->gfx.context, GRAPHICS_COLOR_ORANGE);
+                        Graphics_drawString(&app->gfx.context, "Press", -1, 48, 30, false);
+                        Graphics_drawString(&app->gfx.context, "JS FOR", -1, 48, 40, false);
+                        Graphics_drawString(&app->gfx.context, "-MENU", -1, 45, 50, false);
+
+                        app->STATIC_SCREEN_MODE = FIXED;
+
+                        if(joystickpush(hal) && SWTimer_expired(&app->gameoverscreen))
+                        {
+                            app->SCREENMODE = SCREEN1; //BACK TO MENU SCREEN
+                            app->STATIC_SCREEN_MODE = CHANGES;
+                            SWTimer_start(&app->gameoverscreen);
+                        }
 }
 
 
@@ -377,6 +467,12 @@ void bbgdisplay(Application* app, HAL* hal)
             SWTimer_start(&app->highscoresscreen);
         else if(app->SCREENMODE == SCREEN3)
             SWTimer_start(&app->howtoplayscreen);
+        else if(app->SCREENMODE == SCREEN5)
+            SWTimer_start(&app->gameoverscreen);
+        else if(app->SCREENMODE == SCREEN2)
+        {
+            restart_game_stats(app, hal);
+        }
 
         if(app->SCREENMODE == SCREEN1)
             Graphics_setForegroundColor(&app->gfx.context, GRAPHICS_COLOR_DARK_ORANGE);
@@ -393,6 +489,19 @@ void bbgdisplay(Application* app, HAL* hal)
                         Graphics_setForegroundColor(&app->gfx.context, GRAPHICS_COLOR_WHITE);
                         Graphics_setFont(&app->gfx.context, &g_sFontCm12b);
     }
+}
+
+void restart_game_stats(Application* app, HAL* hal)
+{
+    SWTimer_start(&app->gamescreen);
+    app->game_has_started = true;
+    app->health = 3;
+    app->oldpos_x = 60;
+    app->oldpos_y = 60;
+    app->player_x = 60;
+    app->player_y = 60;
+    app->score = -1;
+    app->shield_points = 0;
 }
 
 void meterdisplay(Application* app, HAL* hal)
@@ -414,8 +523,10 @@ void meterdisplay(Application* app, HAL* hal)
 
 void player(Application* app, HAL* hal)
 {
-    if((app->oldpos_x == app->player_x) && (app->oldpos_y == app->player_y))
+    if((app->oldpos_x == app->player_x) && (app->oldpos_y == app->player_y) || app->game_has_started == true)
+    {
         Graphics_fillCircle(&app->gfx.context, app->player_x, app->player_y, 3);
+    }
 
     if(isTiltedLeft(hal->joystick) && (app->player_x > PLAYER_X_MIN) && SWTimer_expired(&app->playermove))
     {
@@ -473,10 +584,16 @@ void shield_pickup(Application* app, HAL* hal)
         app->sp_y = rand() % 90 + 20; //y - position of shield pick up in the range of 25 to 95
         app->new_shield = true;
     }
-
-    if(app->game_just_started == true) //when the game starts, a shield is provided
+    else
     {
-        app->game_just_started = false;
+        Graphics_setForegroundColor(&app->gfx.context, GRAPHICS_COLOR_YELLOW);
+        Graphics_fillCircle(&app->gfx.context, app->sp_x, app->sp_y, 3);
+        Graphics_setForegroundColor(&app->gfx.context, GRAPHICS_COLOR_WHITE);
+        SWTimer_start(&app->newshieldtime);
+    }
+
+    if(app->game_has_started == true) //when the game starts, a shield is provided
+    {
         Graphics_setForegroundColor(&app->gfx.context, GRAPHICS_COLOR_YELLOW);
         Graphics_fillCircle(&app->gfx.context, app->sp_x, app->sp_y, 3);
         Graphics_setForegroundColor(&app->gfx.context, GRAPHICS_COLOR_WHITE);
@@ -502,6 +619,7 @@ void dangers(Application* app, HAL* hal)
         Graphics_fillCircle(&app->gfx.context, app->d_x, app->d_y, 5);
         app->d_x = rand() % 112 + 10; //x - position of the danger up in the range of 15 to 115
         app->d_y = rand() % 90 + 20; //y - position of the danger up in the range of 25 to 95
+        SWTimer_start(&app->newdangertime);
     }
     else if(app->dead_danger == true) //danger respawns after shield kills a danger
     {
@@ -511,11 +629,25 @@ void dangers(Application* app, HAL* hal)
         Graphics_fillCircle(&app->gfx.context, app->d_x, app->d_y, 5);
         app->d_x = rand() % 112 + 10; //x - position of the danger up in the range of 15 to 115
         app->d_y = rand() % 90 + 20; //y - position of the danger up in the range of 25 to 95
+        SWTimer_start(&app->newdangertime);
     }
 
-    Graphics_setForegroundColor(&app->gfx.context, GRAPHICS_COLOR_RED);
-    Graphics_fillCircle(&app->gfx.context, app->d_x, app->d_y, 3);
-    Graphics_setForegroundColor(&app->gfx.context, GRAPHICS_COLOR_WHITE);
+    if(app->game_has_started == true) //when the game starts, a danger appears
+    {
+        app->game_has_started = false;
+        Graphics_setForegroundColor(&app->gfx.context, GRAPHICS_COLOR_RED);
+        Graphics_fillCircle(&app->gfx.context, app->d_x, app->d_y, 3);
+        Graphics_setForegroundColor(&app->gfx.context, GRAPHICS_COLOR_WHITE);
+        SWTimer_start(&app->newdangertime);
+    }
+
+    if(SWTimer_expired(&app->newdangertime))
+    {
+        Graphics_setForegroundColor(&app->gfx.context, GRAPHICS_COLOR_RED);
+        Graphics_fillCircle(&app->gfx.context, app->d_x, app->d_y, 3);
+        Graphics_setForegroundColor(&app->gfx.context, GRAPHICS_COLOR_WHITE);
+    }
+
 }
 
 void kill_danger(Application* app, HAL* hal)
@@ -587,7 +719,6 @@ void game_window(Application* app, HAL* hal)
                 R.yMax = 113;
             Graphics_drawRectangle(&app->gfx.context, &R);
 }
-
 
 bool joystickpush(HAL* hal)
 {

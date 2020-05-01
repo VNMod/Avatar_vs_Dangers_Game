@@ -27,6 +27,8 @@ struct _Application
 
     int health;
     int score;
+    int scores[5];
+
     int shield_points;
     int difficulty; //ranges from 0-3
 
@@ -35,7 +37,7 @@ struct _Application
 
     bool B2pressed; //flag to check if boosterpack button S2 has been pressed
     bool position_change; //flag to check if the player's position has changed
-    bool game_just_started;
+    bool game_has_started;
 
     float delta_x;
     float delta_y;
@@ -63,6 +65,8 @@ struct _Application
     SWTimer howtoplayscreen; //minimum time for which HOW TO PLAY screen is displayed
     SWTimer highscoresscreen; //minimum time for which GAME SCORES screen is displayed
     SWTimer menuscreen; //minimum time for which the MAIN MENU screen is displayed
+    SWTimer gameoverscreen; //minimum time for which the GAME OVER screen is displayed
+    SWTimer gamescreen; //minimum time for which the game screen is displayed
     SWTimer shieldtime; //time for which shield is effective
     SWTimer playermove;
     SWTimer newshieldtime;
@@ -135,5 +139,11 @@ void update_shield_pos(Application* app, HAL* hal);
 
 // Called to use the shield to kill a danger
 void kill_danger(Application* app, HAL* hal);
+
+// Called to refresh the game stats when a new game is started
+void restart_game_stats(Application* app, HAL* hal);
+
+// Called to sort the scores in descending order
+void scores_sort(Application* app, HAL* hal);
 
 #endif /* APPLICATION_H_ */
