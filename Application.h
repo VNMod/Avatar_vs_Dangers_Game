@@ -25,10 +25,48 @@ struct _Application
     bool STATIC_SCREEN_MODE; //Static Screen Mode flag
     int menu_options; //Menu Options (1-3)
 
+    int health;
+    int score;
+    int shield_points;
+    int difficulty; //ranges from 0-3
+
+    int player_x; //x coordinate for player
+    int player_y; //y coordinate for player
+
+    bool B2pressed; //flag to check if boosterpack button S2 has been pressed
+    bool position_change; //flag to check if the player's position has changed
+    bool game_just_started;
+
+    float delta_x;
+    float delta_y;
+
+    int speed;
+
+    float distance_player_danger;
+
+    bool dead_danger; //when a danger dies, a new danger is true
+    bool new_danger; //flag for when a new danger must respawn
+    bool new_shield; //flag for when a new shield can appear
+
+    float distance_shield_player;
+
+    int oldpos_x;
+    int oldpos_y;
+
+    int sp_x; //x coordinate for shield pickup
+    int sp_y; //y coordinate for shield pickup
+
+    int d_x; //x coordinate for dangers
+    int d_y; //y coordinate for dangers
+
     SWTimer splashscreen; //to display splash screen only for a given time
     SWTimer howtoplayscreen; //minimum time for which HOW TO PLAY screen is displayed
     SWTimer highscoresscreen; //minimum time for which GAME SCORES screen is displayed
     SWTimer menuscreen; //minimum time for which the MAIN MENU screen is displayed
+    SWTimer shieldtime; //time for which shield is effective
+    SWTimer playermove;
+    SWTimer newshieldtime;
+    SWTimer newdangertime;
 };
 typedef struct _Application Application;
 
@@ -50,6 +88,9 @@ void howtoplay_screen(Application* app, HAL* hal);
 // Called to display the highest game scores on the screen
 void highscores_screen(Application* app, HAL* hal);
 
+// Called to display the game over screen
+void gameoverscreen(Application* app, HAL* hal);
+
 // Called to invoke a non-blocking test
 void nonblocktest(Application* app, HAL* hal);
 
@@ -64,5 +105,35 @@ bool joystickpush(HAL* hal);
 
 // Called to display the backgrounds of screens 2, 3 and 4
 void bbgdisplay(Application* app, HAL* hal);
+
+// Called to display player and player related functionalities
+void player(Application* app, HAL* hal);
+
+// Called to display and update the values of the player's H, S, P, D meters
+void meterdisplay(Application* app, HAL* hal);
+
+// Called to display the static texts in game screen that remain unchanged
+void staticobjects(Application* app, HAL* hal);
+
+// Called to display the playable area
+void game_window(Application* app, HAL* hal);
+
+// Called to update the player's position corresponding to the changes in the game
+void update_player_pos(Application* app, HAL* hal);
+
+// Called to display the shield pick ups at random positions
+void shield_pickup(Application* app, HAL* hal);
+
+// Called to display the shield pick ups at random positions
+void dangers(Application* app, HAL* hal);
+
+// Called to enable shield
+void shield(Application* app, HAL* hal);
+
+// Called to update the player's shield's position corresponding to the changes in the game
+void update_shield_pos(Application* app, HAL* hal);
+
+// Called to use the shield to kill a danger
+void kill_danger(Application* app, HAL* hal);
 
 #endif /* APPLICATION_H_ */

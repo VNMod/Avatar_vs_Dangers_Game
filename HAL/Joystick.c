@@ -154,9 +154,6 @@ bool isTiltedLeft(Joystick joystick)
         return true;
     else
         return false;
-
-    //This is equivalent to
-    //return (joystick.vx < LEFT_THRESHOLD);
 }
 
 bool isTiltedRight(Joystick joystick)
@@ -169,7 +166,7 @@ bool isTiltedRight(Joystick joystick)
 
 bool isTiltedUp(Joystick joystick)
 {
-    if (joystick.vy < UP_THRESHOLD)
+    if (joystick.vy > UP_THRESHOLD)
         return true;
     else
         return false;
@@ -177,7 +174,7 @@ bool isTiltedUp(Joystick joystick)
 
 bool isTiltedDown(Joystick joystick)
 {
-    if (joystick.vy > DOWN_THRESHOLD)
+    if (joystick.vy < DOWN_THRESHOLD)
         return true;
     else
         return false;
