@@ -8,7 +8,7 @@
 #include <stdio.h>
 #include <stdlib.h>
 #include <math.h>
-
+#include <time.h>
 
 /* HAL and Application includes */
 #include <Application.h>
@@ -110,7 +110,7 @@ Application Application_construct()
     app.shieldtime = SWTimer_construct(1500); //minimum time to display main menu
     SWTimer_start(&app.shieldtime);
 
-    app.playermove = SWTimer_construct(0.01); //minimum time to display main menu
+    app.playermove = SWTimer_construct(13); //minimum time to display main menu
     SWTimer_start(&app.playermove);
 
     app.newshieldtime = SWTimer_construct(5000);
@@ -140,7 +140,7 @@ Application Application_construct()
 
     app.game_has_started = true;
 
-    app.dead_danger = true; // game starts with a new danger when a danger is killed
+    app.dead_danger = false; // game starts with a new danger so no danger has been killed yet
 
     app.difficulty = 0; //difficulty begins at 0
 
@@ -163,6 +163,8 @@ Application Application_construct()
     app.d_x = rand() % 110 + 15; //random position for the x-coordinate of a danger
 
     app.d_y = rand() % 95 + 25; //random position for the y-coordinate of a danger
+
+    app.no_of_times_played = 0; //as the number of times played is 0 when the application is launched
 
     app.B2pressed = false;
 
@@ -312,11 +314,31 @@ void highscores_screen(Application* app, HAL* hal)
 
     Graphics_setFont(&app->gfx.context, &g_sFontCm14b);
 
-    Graphics_drawString(&app->gfx.context, "Score 1: 0", -1, 30, 25, false);
-    Graphics_drawString(&app->gfx.context, "Score 2: 0", -1, 30, 40, false);
-    Graphics_drawString(&app->gfx.context, "Score 3: 0", -1, 30, 55, false);
-    Graphics_drawString(&app->gfx.context, "Score 4: 0", -1, 30, 70, false);
-    Graphics_drawString(&app->gfx.context, "Score 5: 0", -1, 30, 85, false);
+    Graphics_drawString(&app->gfx.context, "Score 1: ", -1, 30, 25, false);
+    char buffer1[BUFFER_SIZE];
+    snprintf(buffer1, BUFFER_SIZE, "%d ", app->scores[0]);
+    Graphics_drawString(&app->gfx.context, (int8_t*) buffer1, -1, 80, 25, true);
+
+    Graphics_drawString(&app->gfx.context, "Score 2: ", -1, 30, 40, false);
+    char buffer2[BUFFER_SIZE];
+    snprintf(buffer2, BUFFER_SIZE, "%d ", app->scores[1]);
+    Graphics_drawString(&app->gfx.context, (int8_t*) buffer2, -1, 80, 40, true);
+
+    Graphics_drawString(&app->gfx.context, "Score 3: ", -1, 30, 55, false);
+    char buffer3[BUFFER_SIZE];
+    snprintf(buffer3, BUFFER_SIZE, "%d ", app->scores[2]);
+    Graphics_drawString(&app->gfx.context, (int8_t*) buffer3, -1, 80, 55, true);
+
+    Graphics_drawString(&app->gfx.context, "Score 4: ", -1, 30, 70, false);
+    char buffer4[BUFFER_SIZE];
+    snprintf(buffer4, BUFFER_SIZE, "%d ", app->scores[3]);
+    Graphics_drawString(&app->gfx.context, (int8_t*) buffer4, -1, 80, 70, true);
+
+    Graphics_drawString(&app->gfx.context, "Score 5: ", -1, 30, 85, false);
+    char buffer5[BUFFER_SIZE];
+    snprintf(buffer5, BUFFER_SIZE, "%d ", app->scores[4]);
+    Graphics_drawString(&app->gfx.context, (int8_t*) buffer5, -1, 80, 85, true);
+
 
     Graphics_setFont(&app->gfx.context, &g_sFontCm12b);
 
@@ -334,20 +356,30 @@ void highscores_screen(Application* app, HAL* hal)
     }
 }
 
+/*
 void scores_sort(Application* app, HAL* hal)
 {
-    int i, j;
-    static int temp;
+    int i = 0, j;
+    static int count = 0;
+
+    if(app->no_of_times_played > 0 && app->no_of_times_played < 5) //for five games played
+    {
+        app->scores[count] = app->score;
+        count++;
+    }
+
+    int temp;
+
         for (i = 0; i < 4; i++)
-        // Last i elements are already in place
         for (j = 0; j < 4-i; j++)
-            if (arr[j] > arr[j+1])
+            if (app->scores[j] > app->scores[j+1])
             {
-                int temp = &app->scores[j];
-                &app->scores[j] = &app->scores[j+1];
-                &app->scores[j+1] = temp;
+                temp = app->scores[j];
+                app->scores[j] = app->scores[j+1];
+                app->scores[j+1] = temp;
             }
 }
+*/
 
 void gameoverscreen(Application* app, HAL* hal)
 {
@@ -472,6 +504,7 @@ void bbgdisplay(Application* app, HAL* hal)
         else if(app->SCREENMODE == SCREEN2)
         {
             restart_game_stats(app, hal);
+            SWTimer_start(&app->gamescreen);
         }
 
         if(app->SCREENMODE == SCREEN1)
@@ -494,13 +527,14 @@ void bbgdisplay(Application* app, HAL* hal)
 void restart_game_stats(Application* app, HAL* hal)
 {
     SWTimer_start(&app->gamescreen);
+    app->no_of_times_played++;
     app->game_has_started = true;
     app->health = 3;
     app->oldpos_x = 60;
     app->oldpos_y = 60;
     app->player_x = 60;
     app->player_y = 60;
-    app->score = -1;
+    app->score = 0;
     app->shield_points = 0;
 }
 
@@ -523,9 +557,18 @@ void meterdisplay(Application* app, HAL* hal)
 
 void player(Application* app, HAL* hal)
 {
+    if(app->B2pressed == true)
+    {
+        kill_danger(app, hal); //kills danger if within the shield's field of influence
+    }
+
     if((app->oldpos_x == app->player_x) && (app->oldpos_y == app->player_y) || app->game_has_started == true)
     {
         Graphics_fillCircle(&app->gfx.context, app->player_x, app->player_y, 3);
+        if(app->B2pressed == true)
+        {
+            kill_danger(app, hal); //kills danger if within the shield's field of influence
+        }
     }
 
     if(isTiltedLeft(hal->joystick) && (app->player_x > PLAYER_X_MIN) && SWTimer_expired(&app->playermove))
@@ -566,8 +609,8 @@ void update_player_pos(Application* app, HAL* hal)
     Graphics_fillCircle(&app->gfx.context, app->player_x, app->player_y, 3);
     if(app->B2pressed == true)
     {
+        kill_danger(app, hal); //kills danger if within the shield's field of influence
         update_shield_pos(app, hal);
-        kill_danger(app, hal);
     }
 }
 
@@ -582,10 +625,11 @@ void shield_pickup(Application* app, HAL* hal)
         Graphics_fillCircle(&app->gfx.context, app->sp_x, app->sp_y, 5);
         app->sp_x = rand() % 112 + 10; //x - position of shield pick up in the range of 15 to 115
         app->sp_y = rand() % 90 + 20; //y - position of shield pick up in the range of 25 to 95
-        app->new_shield = true;
+        SWTimer_start(&app->newshieldtime);
     }
-    else
+    else if(app->new_shield == true)
     {
+        app->new_shield = false;
         Graphics_setForegroundColor(&app->gfx.context, GRAPHICS_COLOR_YELLOW);
         Graphics_fillCircle(&app->gfx.context, app->sp_x, app->sp_y, 3);
         Graphics_setForegroundColor(&app->gfx.context, GRAPHICS_COLOR_WHITE);
@@ -600,18 +644,18 @@ void shield_pickup(Application* app, HAL* hal)
         SWTimer_start(&app->newshieldtime);
     }
 
-    if(SWTimer_expired(&app->newshieldtime) && app->new_shield == true)
+    if(SWTimer_expired(&app->newshieldtime))
     {
         Graphics_setForegroundColor(&app->gfx.context, GRAPHICS_COLOR_YELLOW);
         Graphics_fillCircle(&app->gfx.context, app->sp_x, app->sp_y, 3);
         Graphics_setForegroundColor(&app->gfx.context, GRAPHICS_COLOR_WHITE);
-        SWTimer_start(&app->newshieldtime);
     }
 }
 
 void dangers(Application* app, HAL* hal)
 {
     app->distance_player_danger = sqrt(pow(app->player_x - app->d_x, 2) + pow(app->player_y - app->d_y, 2)); //distance_player_danger between player and danger (within shield)
+
     if(app->distance_player_danger < 6) //danger respawns after player is hurt through contact
     {
         app->health--;
@@ -695,6 +739,14 @@ void update_shield_pos(Application* app, HAL* hal)
     Graphics_drawCircle(&app->gfx.context, app->oldpos_x, app->oldpos_y, 21);
     Graphics_drawCircle(&app->gfx.context, app->oldpos_x, app->oldpos_y, 22);
     Graphics_drawCircle(&app->gfx.context, app->oldpos_x, app->oldpos_y, 19);
+    Graphics_drawCircle(&app->gfx.context, app->oldpos_x, app->oldpos_y, 18);
+    /* for a faster speed
+    Graphics_drawCircle(&app->gfx.context, app->oldpos_x, app->oldpos_y, 17);
+    Graphics_drawCircle(&app->gfx.context, app->oldpos_x, app->oldpos_y, 23);
+    Graphics_drawCircle(&app->gfx.context, app->oldpos_x, app->oldpos_y, 24);
+    Graphics_drawCircle(&app->gfx.context, app->oldpos_x, app->oldpos_y, 25);
+    Graphics_drawCircle(&app->gfx.context, app->oldpos_x, app->oldpos_y, 26);
+    */
     Graphics_setForegroundColor(&app->gfx.context, GRAPHICS_COLOR_GREEN);
     Graphics_drawCircle(&app->gfx.context, app->player_x, app->player_y, 20);
     Graphics_setForegroundColor(&app->gfx.context, GRAPHICS_COLOR_WHITE);

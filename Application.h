@@ -41,8 +41,9 @@ struct _Application
 
     float delta_x;
     float delta_y;
-
     int speed;
+
+    int no_of_times_played;
 
     float distance_player_danger;
 
