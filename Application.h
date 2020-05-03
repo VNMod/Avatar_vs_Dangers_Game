@@ -50,7 +50,8 @@ struct _Application
     bool dead_danger; //when a danger dies, a new danger is true
     bool new_danger; //flag for when a new danger must respawn
     bool new_shield; //flag for when a new shield can appear
-
+    bool just_died; //flag to check if the avatar just died
+    bool just_died_again; //flag to check if the avatar died again
     float distance_shield_player;
 
     float oldpos_x;
@@ -72,6 +73,7 @@ struct _Application
     SWTimer playermove;
     SWTimer newshieldtime;
     SWTimer newdangertime;
+    SWTimer invulnerable;
 };
 typedef struct _Application Application;
 
@@ -146,5 +148,8 @@ void restart_game_stats(Application* app, HAL* hal);
 
 // Called to perform a bubble sort to sort the scores in descending order
 void scores_sort(Application* app, HAL* hal);
+
+// Called to display that the avatar has been hurt visibly
+void hurt_checker(Application* app, HAL* hal);
 
 #endif /* APPLICATION_H_ */

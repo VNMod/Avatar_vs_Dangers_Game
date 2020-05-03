@@ -38,7 +38,11 @@
 #define FIXED 1
 #define CHANGES 0
 #define MINSCREENTIME 500
+#define SHIELD_TIME 1500
+#define NEW_SHIELD_TIME 5000
+#define NEW_DANGER_TIME 3000
 #define BUFFER_SIZE 5 //buffer size for printf
+#define NO_GAMES_PLAYED 0
 
 #define SHIELDTIME 1500 //1.5 seconds for a shield
 #define DEAD 0
@@ -114,17 +118,20 @@ Application Application_construct()
     app.gameoverscreen = SWTimer_construct(MINSCREENTIME); //minimum time to display main menu
     SWTimer_start(&app.gameoverscreen);
 
-    app.shieldtime = SWTimer_construct(1500); //minimum time to display main menu
+    app.shieldtime = SWTimer_construct(SHIELD_TIME); //time for which shield is displayed
     SWTimer_start(&app.shieldtime);
 
-    app.playermove = SWTimer_construct(0); //minimum time to display main menu
+    app.playermove = SWTimer_construct(1); //minimum time to display player's movement
     SWTimer_start(&app.playermove);
 
-    app.newshieldtime = SWTimer_construct(5000);
+    app.newshieldtime = SWTimer_construct(NEW_SHIELD_TIME); //a new shield point/icon is spawned every 5 seconds after the avatar's come in contact with one
     SWTimer_start(&app.newshieldtime);
 
-    app.newdangertime = SWTimer_construct(3000);
+    app.newdangertime = SWTimer_construct(NEW_DANGER_TIME); //a new danger is spawned every 3 seconds after the avatar's death
     SWTimer_start(&app.newdangertime);
+
+    app.invulnerable = SWTimer_construct(6000); //player is invulnerable for 6 seconds after being hurt
+    SWTimer_start(&app.invulnerable);
 
     //Game should begin with splash screen, indicated by a value if 0
     app.SCREENMODE = SPLASHSCREEN;
@@ -166,7 +173,6 @@ Application Application_construct()
 
     app.oldpos_y = 60; //player starts at the center of the screen
 
-    srand(time(NULL));
     app.sp_x = rand() % 110 + 15; //random position for the x-coordinate of a shield
 
     app.sp_y = rand() % 95 + 25; //random position for the y-coordinate of a shield
@@ -175,9 +181,13 @@ Application Application_construct()
 
     app.d_y = rand() % 95 + 25; //random position for the y-coordinate of a danger
 
-    app.no_of_times_played = 0; //as the number of times played is 0 when the application is launched
+    app.no_of_times_played = NO_GAMES_PLAYED; //as the number of times played is 0 when the application is launched
 
     app.B2pressed = false;
+
+    app.just_died = true;
+
+    app.just_died_again = false;
 
     app.position_change = false; //no change in the player's position at the beginning
 
@@ -270,6 +280,7 @@ void playgame_screen(Application* app, HAL* hal)
     Graphics_drawString(&app->gfx.context, "-------------------------------------", -1, 0, 6, false);
 
     meterdisplay(app, hal);
+
     player(app, hal);
     shield_pickup(app, hal);
     shield(app, hal);
@@ -542,6 +553,7 @@ void restart_game_stats(Application* app, HAL* hal)
     SWTimer_start(&app->gamescreen);
     app->no_of_times_played++;
     app->game_has_started = true;
+    app->just_died = true;
     app->health = MAX_HEALTH;
     app->oldpos_x = 60;
     app->oldpos_y = 60;
@@ -577,7 +589,9 @@ void player(Application* app, HAL* hal)
 
     if((app->oldpos_x == app->player_x) && (app->oldpos_y == app->player_y) || app->game_has_started == true)
     {
+        hurt_checker(app, hal);
         Graphics_fillCircle(&app->gfx.context, app->player_x, app->player_y, 3);
+        Graphics_setForegroundColor(&app->gfx.context, GRAPHICS_COLOR_WHITE);
         if(app->B2pressed == true)
         {
             kill_danger(app, hal); //kills danger if within the shield's field of influence
@@ -630,13 +644,24 @@ void player(Application* app, HAL* hal)
 
 }
 
+void hurt_checker(Application* app, HAL* hal) //BONUS FEATURE
+{
+    if(app->health < 3)
+    {
+        Graphics_setForegroundColor(&app->gfx.context, GRAPHICS_COLOR_PURPLE);
+    }
+    else
+        Graphics_setForegroundColor(&app->gfx.context, GRAPHICS_COLOR_WHITE);
+}
+
 void update_player_pos(Application* app, HAL* hal)
 {
     //erases previous player position and draws player in new position
     Graphics_setForegroundColor(&app->gfx.context, GRAPHICS_COLOR_BLACK);
     Graphics_fillCircle(&app->gfx.context, app->oldpos_x, app->oldpos_y, 5);
-    Graphics_setForegroundColor(&app->gfx.context, GRAPHICS_COLOR_WHITE);
+    hurt_checker(app, hal);
     Graphics_fillCircle(&app->gfx.context, app->player_x, app->player_y, 3);
+    Graphics_setForegroundColor(&app->gfx.context, GRAPHICS_COLOR_WHITE);
     if(app->B2pressed == true)
     {
         kill_danger(app, hal); //kills danger if within the shield's field of influence
@@ -688,12 +713,44 @@ void dangers(Application* app, HAL* hal)
 
     if(app->distance_player_danger < 6) //danger respawns after player is hurt through contact
     {
-        app->health--;
-        Graphics_setForegroundColor(&app->gfx.context, GRAPHICS_COLOR_BLACK);
-        Graphics_fillCircle(&app->gfx.context, app->d_x, app->d_y, 5);
-        app->d_x = rand() % 112 + 10; //x - position of the danger up in the range of 10 to 112
-        app->d_y = rand() % 90 + 20; //y - position of the danger up in the range of 20 to 90
-        SWTimer_start(&app->newdangertime);
+        if(app->just_died == true) //with BONUS FEATURE: INVULNERABILITY
+        {
+            app->health--;
+            Graphics_setForegroundColor(&app->gfx.context, GRAPHICS_COLOR_BLACK);
+            Graphics_fillCircle(&app->gfx.context, app->d_x, app->d_y, 5);
+            app->d_x = rand() % 112 + 10; //x - position of the danger up in the range of 10 to 112
+            app->d_y = rand() % 90 + 20; //y - position of the danger up in the range of 20 to 90
+            SWTimer_start(&app->newdangertime);
+            SWTimer_start(&app->invulnerable);
+            app->just_died = false;
+        }
+        else if(SWTimer_expired(&app->invulnerable)) //with BONUS FEATURE: INVULNERABILITY
+        {
+            app->health--;
+            Graphics_setForegroundColor(&app->gfx.context, GRAPHICS_COLOR_BLACK);
+            Graphics_fillCircle(&app->gfx.context, app->d_x, app->d_y, 5);
+            app->d_x = rand() % 112 + 10; //x - position of the danger up in the range of 10 to 112
+            app->d_y = rand() % 90 + 20; //y - position of the danger up in the range of 20 to 90
+            SWTimer_start(&app->invulnerable);
+            SWTimer_start(&app->newdangertime);
+            app->just_died_again = true;
+        }
+        else if(app->just_died_again == true)
+        {
+            Graphics_setForegroundColor(&app->gfx.context, GRAPHICS_COLOR_BLACK);
+            Graphics_fillCircle(&app->gfx.context, app->d_x, app->d_y, 5);
+            app->d_x = rand() % 112 + 10; //x - position of the danger up in the range of 10 to 112
+            app->d_y = rand() % 90 + 20; //y - position of the danger up in the range of 20 to 90
+            SWTimer_start(&app->newdangertime);
+        }
+        else //with BONUS FEATURE: INVULNERABILITY
+        {
+            Graphics_setForegroundColor(&app->gfx.context, GRAPHICS_COLOR_BLACK);
+            Graphics_fillCircle(&app->gfx.context, app->d_x, app->d_y, 5);
+            app->d_x = rand() % 112 + 10; //x - position of the danger up in the range of 10 to 112
+            app->d_y = rand() % 90 + 20; //y - position of the danger up in the range of 20 to 90
+            SWTimer_start(&app->newdangertime);
+        }
     }
     else if(app->dead_danger == true) //danger respawns after shield kills a danger
     {
