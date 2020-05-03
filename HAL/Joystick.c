@@ -7,10 +7,10 @@
 
 #define VX_MIDDLE 8000
 #define VY_MIDDLE 8000
-#define LEFT_THRESHOLD  1500
+#define LEFT_THRESHOLD 5000
 #define RIGHT_THRESHOLD 10000
 #define UP_THRESHOLD 10000
-#define DOWN_THRESHOLD 1500
+#define DOWN_THRESHOLD 5000
 
 void initADC();
 void initJoystick();
@@ -33,6 +33,7 @@ Joystick Joystick_construct()
     js.isTappedDown = false;
 
     js.vx_old = VX_MIDDLE; //joystick in unmoved state is in the middle
+    js.vy_old = VY_MIDDLE;
 
     initADC();
     initJoystick();
@@ -179,5 +180,38 @@ bool isTiltedDown(Joystick joystick)
     else
         return false;
 }
+
+bool isTiltedDiagonalLeftUp(Joystick joystick)
+{
+    if (joystick.vx < LEFT_THRESHOLD && joystick.vy > UP_THRESHOLD)
+        return true;
+    else
+        return false;
+}
+
+bool isTiltedDiagonalLeftDown(Joystick joystick)
+{
+    if (joystick.vx < LEFT_THRESHOLD && joystick.vy < DOWN_THRESHOLD)
+        return true;
+    else
+        return false;
+}
+
+bool isTiltedDiagonalRightUp(Joystick joystick)
+{
+    if (joystick.vx > RIGHT_THRESHOLD && joystick.vy > UP_THRESHOLD)
+        return true;
+    else
+        return false;
+}
+
+bool isTiltedDiagonalRightDown(Joystick joystick)
+{
+    if (joystick.vx > RIGHT_THRESHOLD && joystick.vy < DOWN_THRESHOLD)
+        return true;
+    else
+        return false;
+}
+
 
 

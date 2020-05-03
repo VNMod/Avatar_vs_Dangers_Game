@@ -15,6 +15,11 @@
 #include <HAL/HAL.h>
 #include <HAL/Timer.h>
 
+#define UP_BOOST 13000
+#define DOWN_BOOST 1000
+#define LEFT_BOOST 1000
+#define RIGHT_BOOST 13000
+
 #define SPLASHSCREEN_TIME 1500 //1.5s for Splash Screen
 #define MINIMUM_SCREEN_TIME 500 //minimum time for which a screen is displayed (500ms or 0.5s)
 #define SPLASHSCREEN 0
@@ -33,11 +38,6 @@
 #define BUFFER_SIZE 5 //buffer size for printf
 
 #define SHIELDTIME 1500 //1.5 seconds for a shield
-
-#define LEFT_THRESHOLD  1000 //1500
-#define RIGHT_THRESHOLD 7000 //10000
-#define UP_THRESHOLD 7000 //10000
-#define DOWN_THRESHOLD 1000 //1500
 
 #define PLAYER_X_MAX 120
 #define PLAYER_X_MIN 10
@@ -110,7 +110,7 @@ Application Application_construct()
     app.shieldtime = SWTimer_construct(1500); //minimum time to display main menu
     SWTimer_start(&app.shieldtime);
 
-    app.playermove = SWTimer_construct(13); //minimum time to display main menu
+    app.playermove = SWTimer_construct(0); //minimum time to display main menu
     SWTimer_start(&app.playermove);
 
     app.newshieldtime = SWTimer_construct(5000);
@@ -137,6 +137,8 @@ Application Application_construct()
     app.scores[2] = 0;
     app.scores[3] = 0;
     app.scores[4] = 0;
+
+    app.delta = 1;
 
     app.game_has_started = true;
 
@@ -573,31 +575,48 @@ void player(Application* app, HAL* hal)
 
     if(isTiltedLeft(hal->joystick) && (app->player_x > PLAYER_X_MIN) && SWTimer_expired(&app->playermove))
     {
+        if(hal->joystick.vx < LEFT_BOOST)
+            app->delta = 2;
+        else
+            app->delta = 1;
         app->oldpos_x = app->player_x;
-        app->player_x = app->oldpos_x - 1;
+        app->player_x = app->oldpos_x - app->delta;
         update_player_pos(app, hal);
     }
     if(isTiltedRight(hal->joystick) && (app->player_x < PLAYER_X_MAX) && SWTimer_expired(&app->playermove))
     {
+        if(hal->joystick.vx > RIGHT_BOOST)
+            app->delta = 2;
+        else
+            app->delta = 1;
         SWTimer_start(&app->playermove);
         app->oldpos_x = app->player_x;
-        app->player_x = app->oldpos_x + 1;
+        app->player_x = app->oldpos_x + app->delta;
         update_player_pos(app, hal);
     }
     if(isTiltedUp(hal->joystick) && (app->player_y > PLAYER_Y_MIN) && SWTimer_expired(&app->playermove))
     {
+        if(hal->joystick.vy > UP_BOOST)
+            app->delta = 2;
+        else
+            app->delta = 1;
         SWTimer_start(&app->playermove);
         app->oldpos_y = app->player_y;
-        app->player_y = app->oldpos_y - 1;
+        app->player_y = app->oldpos_y - app->delta;
         update_player_pos(app, hal);
     }
     if(isTiltedDown(hal->joystick) && (app->player_y < PLAYER_Y_MAX) && SWTimer_expired(&app->playermove))
     {
+        if(hal->joystick.vy < DOWN_BOOST)
+            app->delta = 2;
+        else
+            app->delta = 1;
         SWTimer_start(&app->playermove);
         app->oldpos_y = app->player_y;
-        app->player_y = app->oldpos_y + 1;
+        app->player_y = app->oldpos_y + app->delta;
         update_player_pos(app, hal);
     }
+
 }
 
 void update_player_pos(Application* app, HAL* hal)

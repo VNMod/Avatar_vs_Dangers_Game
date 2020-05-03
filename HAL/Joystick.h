@@ -38,4 +38,9 @@ bool isTiltedRight(Joystick joystick);
 bool isTiltedUp(Joystick joystick);
 bool isTiltedDown(Joystick joystick);
 
+bool isTiltedDiagonalLeftUp(Joystick joystick);
+bool isTiltedDiagonalLeftDown(Joystick joystick);
+bool isTiltedDiagonalRightUp(Joystick joystick);
+bool isTiltedDiagonalRightDown(Joystick joystick);
+
 #endif /* JOYSTICK_H_ */

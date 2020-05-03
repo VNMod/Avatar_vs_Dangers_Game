@@ -32,16 +32,14 @@ struct _Application
     int shield_points;
     int difficulty; //ranges from 0-3
 
-    int player_x; //x coordinate for player
-    int player_y; //y coordinate for player
+    float player_x; //x coordinate for player
+    float player_y; //y coordinate for player
 
     bool B2pressed; //flag to check if boosterpack button S2 has been pressed
     bool position_change; //flag to check if the player's position has changed
     bool game_has_started;
 
-    float delta_x;
-    float delta_y;
-    int speed;
+    float delta;
 
     int no_of_times_played;
 
@@ -53,8 +51,8 @@ struct _Application
 
     float distance_shield_player;
 
-    int oldpos_x;
-    int oldpos_y;
+    float oldpos_x;
+    float oldpos_y;
 
     int sp_x; //x coordinate for shield pickup
     int sp_y; //y coordinate for shield pickup
