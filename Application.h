@@ -29,6 +29,8 @@ struct _Application
     int score;
     int scores[5];
 
+    int count;
+
     int shield_points;
     int difficulty; //ranges from 0-3
 
@@ -142,7 +144,7 @@ void kill_danger(Application* app, HAL* hal);
 // Called to refresh the game stats when a new game is started
 void restart_game_stats(Application* app, HAL* hal);
 
-// Called to sort the scores in descending order
+// Called to perform a bubble sort to sort the scores in descending order
 void scores_sort(Application* app, HAL* hal);
 
 #endif /* APPLICATION_H_ */

@@ -20,6 +20,9 @@
 #define LEFT_BOOST 1000
 #define RIGHT_BOOST 13000
 
+#define FAST 2
+#define SLOW 1
+
 #define SPLASHSCREEN_TIME 1500 //1.5s for Splash Screen
 #define MINIMUM_SCREEN_TIME 500 //minimum time for which a screen is displayed (500ms or 0.5s)
 #define SPLASHSCREEN 0
@@ -131,6 +134,7 @@ Application Application_construct()
     app.health = 3; // players start with three health points
 
     app.score = 0; //players start with a zero (0) score
+    app.count = 0;
 
     app.scores[0] = 0;
     app.scores[1] = 0;
@@ -138,9 +142,9 @@ Application Application_construct()
     app.scores[3] = 0;
     app.scores[4] = 0;
 
-    app.delta = 1;
+    app.delta = SLOW; //by default the speed is slow when a joystick is tilted
 
-    app.game_has_started = true;
+    app.game_has_started = true; //it's a flag to determine if a game has started
 
     app.dead_danger = false; // game starts with a new danger so no danger has been killed yet
 
@@ -311,6 +315,11 @@ void highscores_screen(Application* app, HAL* hal)
 {
     bbgdisplay(app, hal);
 
+    if(app->STATIC_SCREEN_MODE == CHANGES)
+    {
+        scores_sort(app, hal);
+    }
+
     Graphics_drawString(&app->gfx.context, "High Scores", -1, 0, 0, false);
     Graphics_drawString(&app->gfx.context, "-------------------------------------", -1, 0, 6, false);
 
@@ -358,30 +367,27 @@ void highscores_screen(Application* app, HAL* hal)
     }
 }
 
-/*
 void scores_sort(Application* app, HAL* hal)
 {
     int i = 0, j;
-    static int count = 0;
 
-    if(app->no_of_times_played > 0 && app->no_of_times_played < 5) //for five games played
+    if(app->no_of_times_played > 0 && app->no_of_times_played <= 5) //for five games played
     {
-        app->scores[count] = app->score;
-        count++;
+        app->scores[app->count] = app->score;
+        app->count++;
     }
 
     int temp;
 
         for (i = 0; i < 4; i++)
         for (j = 0; j < 4-i; j++)
-            if (app->scores[j] > app->scores[j+1])
+            if (app->scores[j] < app->scores[j+1])
             {
                 temp = app->scores[j];
                 app->scores[j] = app->scores[j+1];
                 app->scores[j+1] = temp;
             }
 }
-*/
 
 void gameoverscreen(Application* app, HAL* hal)
 {
@@ -576,9 +582,9 @@ void player(Application* app, HAL* hal)
     if(isTiltedLeft(hal->joystick) && (app->player_x > PLAYER_X_MIN) && SWTimer_expired(&app->playermove))
     {
         if(hal->joystick.vx < LEFT_BOOST)
-            app->delta = 2;
+            app->delta = FAST;
         else
-            app->delta = 1;
+            app->delta = SLOW;
         app->oldpos_x = app->player_x;
         app->player_x = app->oldpos_x - app->delta;
         update_player_pos(app, hal);
@@ -586,9 +592,9 @@ void player(Application* app, HAL* hal)
     if(isTiltedRight(hal->joystick) && (app->player_x < PLAYER_X_MAX) && SWTimer_expired(&app->playermove))
     {
         if(hal->joystick.vx > RIGHT_BOOST)
-            app->delta = 2;
+            app->delta = FAST;
         else
-            app->delta = 1;
+            app->delta = SLOW;
         SWTimer_start(&app->playermove);
         app->oldpos_x = app->player_x;
         app->player_x = app->oldpos_x + app->delta;
@@ -597,9 +603,9 @@ void player(Application* app, HAL* hal)
     if(isTiltedUp(hal->joystick) && (app->player_y > PLAYER_Y_MIN) && SWTimer_expired(&app->playermove))
     {
         if(hal->joystick.vy > UP_BOOST)
-            app->delta = 2;
+            app->delta = FAST;
         else
-            app->delta = 1;
+            app->delta = SLOW;
         SWTimer_start(&app->playermove);
         app->oldpos_y = app->player_y;
         app->player_y = app->oldpos_y - app->delta;
@@ -608,9 +614,9 @@ void player(Application* app, HAL* hal)
     if(isTiltedDown(hal->joystick) && (app->player_y < PLAYER_Y_MAX) && SWTimer_expired(&app->playermove))
     {
         if(hal->joystick.vy < DOWN_BOOST)
-            app->delta = 2;
+            app->delta = FAST;
         else
-            app->delta = 1;
+            app->delta = SLOW;
         SWTimer_start(&app->playermove);
         app->oldpos_y = app->player_y;
         app->player_y = app->oldpos_y + app->delta;
