@@ -41,6 +41,10 @@
 #define BUFFER_SIZE 5 //buffer size for printf
 
 #define SHIELDTIME 1500 //1.5 seconds for a shield
+#define DEAD 0
+#define MAX_HEALTH 3
+#define MIN_SCORE 0
+#define MIN_SHIELD_POINTS 0
 
 #define PLAYER_X_MAX 120
 #define PLAYER_X_MIN 10
@@ -162,6 +166,7 @@ Application Application_construct()
 
     app.oldpos_y = 60; //player starts at the center of the screen
 
+    srand(time(NULL));
     app.sp_x = rand() % 110 + 15; //random position for the x-coordinate of a shield
 
     app.sp_y = rand() % 95 + 25; //random position for the y-coordinate of a shield
@@ -272,7 +277,7 @@ void playgame_screen(Application* app, HAL* hal)
 
     app->STATIC_SCREEN_MODE = FIXED;
 
-    if(app->health == 0 && app->game_has_started == false && SWTimer_expired(&app->gamescreen))
+    if(app->health == DEAD && app->game_has_started == false && SWTimer_expired(&app->gamescreen))
     {
         app->SCREENMODE = SCREEN5;
         app->STATIC_SCREEN_MODE = CHANGES;
@@ -287,7 +292,7 @@ void howtoplay_screen(Application* app, HAL* hal)
     Graphics_drawString(&app->gfx.context, "-------------------------------------", -1, 0, 6, false);
 
     Graphics_drawString(&app->gfx.context, "Avoid all the RED", -1, 5, 15, false);
-    Graphics_drawString(&app->gfx.context, "dangers! Collect Blue", -1, 5, 25, false);
+    Graphics_drawString(&app->gfx.context, "dangers! Collect Yellow", -1, 5, 25, false);
     Graphics_drawString(&app->gfx.context, "shield points by", -1, 5, 35, false);
     Graphics_drawString(&app->gfx.context, "running into them.", -1, 5, 45, false);
     Graphics_drawString(&app->gfx.context, "Then, spend shield", -1, 5, 55, false);
@@ -537,13 +542,13 @@ void restart_game_stats(Application* app, HAL* hal)
     SWTimer_start(&app->gamescreen);
     app->no_of_times_played++;
     app->game_has_started = true;
-    app->health = 3;
+    app->health = MAX_HEALTH;
     app->oldpos_x = 60;
     app->oldpos_y = 60;
     app->player_x = 60;
     app->player_y = 60;
-    app->score = 0;
-    app->shield_points = 0;
+    app->score = MIN_SCORE;
+    app->shield_points = MIN_SHIELD_POINTS;
 }
 
 void meterdisplay(Application* app, HAL* hal)
@@ -648,8 +653,8 @@ void shield_pickup(Application* app, HAL* hal)
         app->shield_points++;
         Graphics_setForegroundColor(&app->gfx.context, GRAPHICS_COLOR_BLACK);
         Graphics_fillCircle(&app->gfx.context, app->sp_x, app->sp_y, 5);
-        app->sp_x = rand() % 112 + 10; //x - position of shield pick up in the range of 15 to 115
-        app->sp_y = rand() % 90 + 20; //y - position of shield pick up in the range of 25 to 95
+        app->sp_x = rand() % 112 + 10; //x - position of shield pick up in the range of 10 to 112
+        app->sp_y = rand() % 90 + 20; //y - position of shield pick up in the range of 20 to 90
         SWTimer_start(&app->newshieldtime);
     }
     else if(app->new_shield == true)
@@ -686,8 +691,8 @@ void dangers(Application* app, HAL* hal)
         app->health--;
         Graphics_setForegroundColor(&app->gfx.context, GRAPHICS_COLOR_BLACK);
         Graphics_fillCircle(&app->gfx.context, app->d_x, app->d_y, 5);
-        app->d_x = rand() % 112 + 10; //x - position of the danger up in the range of 15 to 115
-        app->d_y = rand() % 90 + 20; //y - position of the danger up in the range of 25 to 95
+        app->d_x = rand() % 112 + 10; //x - position of the danger up in the range of 10 to 112
+        app->d_y = rand() % 90 + 20; //y - position of the danger up in the range of 20 to 90
         SWTimer_start(&app->newdangertime);
     }
     else if(app->dead_danger == true) //danger respawns after shield kills a danger
@@ -696,8 +701,8 @@ void dangers(Application* app, HAL* hal)
         app->score++;
         Graphics_setForegroundColor(&app->gfx.context, GRAPHICS_COLOR_BLACK);
         Graphics_fillCircle(&app->gfx.context, app->d_x, app->d_y, 5);
-        app->d_x = rand() % 112 + 10; //x - position of the danger up in the range of 15 to 115
-        app->d_y = rand() % 90 + 20; //y - position of the danger up in the range of 25 to 95
+        app->d_x = rand() % 112 + 10; //x - position of the danger up in the range of 10 to 112
+        app->d_y = rand() % 90 + 20; //y - position of the danger up in the range of 20 to 90
         SWTimer_start(&app->newdangertime);
     }
 
@@ -765,13 +770,7 @@ void update_shield_pos(Application* app, HAL* hal)
     Graphics_drawCircle(&app->gfx.context, app->oldpos_x, app->oldpos_y, 22);
     Graphics_drawCircle(&app->gfx.context, app->oldpos_x, app->oldpos_y, 19);
     Graphics_drawCircle(&app->gfx.context, app->oldpos_x, app->oldpos_y, 18);
-    /* for a faster speed
-    Graphics_drawCircle(&app->gfx.context, app->oldpos_x, app->oldpos_y, 17);
-    Graphics_drawCircle(&app->gfx.context, app->oldpos_x, app->oldpos_y, 23);
-    Graphics_drawCircle(&app->gfx.context, app->oldpos_x, app->oldpos_y, 24);
-    Graphics_drawCircle(&app->gfx.context, app->oldpos_x, app->oldpos_y, 25);
-    Graphics_drawCircle(&app->gfx.context, app->oldpos_x, app->oldpos_y, 26);
-    */
+
     Graphics_setForegroundColor(&app->gfx.context, GRAPHICS_COLOR_GREEN);
     Graphics_drawCircle(&app->gfx.context, app->player_x, app->player_y, 20);
     Graphics_setForegroundColor(&app->gfx.context, GRAPHICS_COLOR_WHITE);
