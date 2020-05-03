@@ -7,10 +7,10 @@
 
 #define VX_MIDDLE 8000
 #define VY_MIDDLE 8000
-#define LEFT_THRESHOLD 5000
+#define LEFT_THRESHOLD 6000
 #define RIGHT_THRESHOLD 10000
 #define UP_THRESHOLD 10000
-#define DOWN_THRESHOLD 5000
+#define DOWN_THRESHOLD 6000
 
 void initADC();
 void initJoystick();

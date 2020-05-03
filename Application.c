@@ -16,10 +16,15 @@
 #include <HAL/Timer.h>
 
 #define UP_BOOST 13000
-#define DOWN_BOOST 1000
-#define LEFT_BOOST 1000
+#define UP_BETTERBOOST 15000
+#define DOWN_BOOST 3000
+#define DOWN_BETTERBOOST 1000
+#define LEFT_BOOST 3000
+#define LEFT_BETTERBOOST 1000
 #define RIGHT_BOOST 13000
+#define RIGHT_BETTERBOOST 15000
 
+#define SUPERFAST 3
 #define FAST 2
 #define SLOW 1
 
@@ -600,44 +605,64 @@ void player(Application* app, HAL* hal)
 
     if(isTiltedLeft(hal->joystick) && (app->player_x > PLAYER_X_MIN) && SWTimer_expired(&app->playermove))
     {
-        if(hal->joystick.vx < LEFT_BOOST)
+        if(hal->joystick.vx < LEFT_BETTERBOOST)
+        {
+            app->delta = SUPERFAST;
+        }
+        else if(hal->joystick.vx < LEFT_BOOST)
             app->delta = FAST;
         else
             app->delta = SLOW;
         app->oldpos_x = app->player_x;
+        app->oldpos_y = app->player_y;
         app->player_x = app->oldpos_x - app->delta;
         update_player_pos(app, hal);
     }
     if(isTiltedRight(hal->joystick) && (app->player_x < PLAYER_X_MAX) && SWTimer_expired(&app->playermove))
     {
-        if(hal->joystick.vx > RIGHT_BOOST)
+        if(hal->joystick.vx > RIGHT_BETTERBOOST)
+        {
+            app->delta = SUPERFAST;
+        }
+        else if(hal->joystick.vx > RIGHT_BOOST)
             app->delta = FAST;
         else
             app->delta = SLOW;
         SWTimer_start(&app->playermove);
         app->oldpos_x = app->player_x;
+        app->oldpos_y = app->player_y;
         app->player_x = app->oldpos_x + app->delta;
         update_player_pos(app, hal);
     }
     if(isTiltedUp(hal->joystick) && (app->player_y > PLAYER_Y_MIN) && SWTimer_expired(&app->playermove))
     {
-        if(hal->joystick.vy > UP_BOOST)
+        if(hal->joystick.vy > UP_BETTERBOOST)
+        {
+            app->delta = SUPERFAST;
+        }
+        else if(hal->joystick.vy > UP_BOOST)
             app->delta = FAST;
         else
             app->delta = SLOW;
         SWTimer_start(&app->playermove);
         app->oldpos_y = app->player_y;
+        app->oldpos_x = app->player_x;
         app->player_y = app->oldpos_y - app->delta;
         update_player_pos(app, hal);
     }
     if(isTiltedDown(hal->joystick) && (app->player_y < PLAYER_Y_MAX) && SWTimer_expired(&app->playermove))
     {
-        if(hal->joystick.vy < DOWN_BOOST)
+        if(hal->joystick.vy < DOWN_BETTERBOOST)
+        {
+            app->delta = SUPERFAST;
+        }
+        else if(hal->joystick.vy < DOWN_BOOST)
             app->delta = FAST;
         else
             app->delta = SLOW;
         SWTimer_start(&app->playermove);
         app->oldpos_y = app->player_y;
+        app->oldpos_x = app->player_x;
         app->player_y = app->oldpos_y + app->delta;
         update_player_pos(app, hal);
     }
@@ -823,10 +848,6 @@ void update_shield_pos(Application* app, HAL* hal)
     //erases player's shield at previous position and prints new one
     Graphics_setForegroundColor(&app->gfx.context, GRAPHICS_COLOR_BLACK);
     Graphics_drawCircle(&app->gfx.context, app->oldpos_x, app->oldpos_y, 20);
-    Graphics_drawCircle(&app->gfx.context, app->oldpos_x, app->oldpos_y, 21);
-    Graphics_drawCircle(&app->gfx.context, app->oldpos_x, app->oldpos_y, 22);
-    Graphics_drawCircle(&app->gfx.context, app->oldpos_x, app->oldpos_y, 19);
-    Graphics_drawCircle(&app->gfx.context, app->oldpos_x, app->oldpos_y, 18);
 
     Graphics_setForegroundColor(&app->gfx.context, GRAPHICS_COLOR_GREEN);
     Graphics_drawCircle(&app->gfx.context, app->player_x, app->player_y, 20);
