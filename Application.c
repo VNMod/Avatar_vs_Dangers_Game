@@ -15,14 +15,14 @@
 #include <HAL/HAL.h>
 #include <HAL/Timer.h>
 
-#define UP_BOOST 13000
-#define UP_BETTERBOOST 15000
-#define DOWN_BOOST 3000
-#define DOWN_BETTERBOOST 1000
-#define LEFT_BOOST 3000
-#define LEFT_BETTERBOOST 1000
-#define RIGHT_BOOST 13000
-#define RIGHT_BETTERBOOST 15000
+#define UP_BOOST 13000 //medium fast upwards threshold
+#define UP_BETTERBOOST 15000 //fast upwards threshold
+#define DOWN_BOOST 3000 //medium fast downwards threshold
+#define DOWN_BETTERBOOST 1000 //fast downwards threshold
+#define LEFT_BOOST 3000 //medium fast left threshold
+#define LEFT_BETTERBOOST 1000 //fast upwards threshold
+#define RIGHT_BOOST 13000 //medium fast right threshold
+#define RIGHT_BETTERBOOST 15000 //fast upwards threshold
 
 #define SUPERFAST 3
 #define FAST 2
@@ -60,6 +60,7 @@
 #define NOSCORE 0
 #define DEFAULT_SCORE 0
 #define NO_COUNT 0
+#define MIN_DIST 9 //minimum distance between an icon and avatar where it remains unaffected, be it danger or shield pickup
 
 #define PLAYER_X_MAX 120
 #define PLAYER_X_MIN 10
@@ -181,6 +182,8 @@ Application Application_construct()
     app.new_shield = true; //game must start with a shield
 
     app.firstpickupshield = false;
+
+    app.refreshpickupshield = false;
 
     app.player_x = MID_SCREEN; //player starts at the center of the screen
 
@@ -592,6 +595,8 @@ void restart_game_stats(Application* app, HAL* hal)
     app->score = MIN_SCORE;
     app->shield_points = MIN_SHIELD_POINTS;
     app->firstpickupshield = false;
+    app->refreshpickupshield = false;
+    app->new_danger = false;
 }
 
 void meterdisplay(Application* app, HAL* hal)
@@ -724,7 +729,7 @@ void shield_pickup(Application* app, HAL* hal)
 {
     app->distance_shield_player = sqrt(pow(app->player_x - app->sp_x, 2) + pow(app->player_y - app->sp_y, 2));
 
-    if(app->distance_shield_player < 7 && app->new_shield == false)
+    if(app->distance_shield_player < MIN_DIST && app->new_shield == false)
     {
         app->shield_points++;
         Graphics_setForegroundColor(&app->gfx.context, GRAPHICS_COLOR_BLACK);
@@ -752,13 +757,21 @@ void shield_pickup(Application* app, HAL* hal)
         SWTimer_start(&app->newshieldtime);
         app->new_shield = false;
     }
+
+    if(app->refreshpickupshield == true && app->new_shield == false) //if shield runs over pickup it should be unaffected/its state should be refreshed
+    {
+        Graphics_setForegroundColor(&app->gfx.context, GRAPHICS_COLOR_YELLOW);
+        Graphics_fillCircle(&app->gfx.context, app->sp_x, app->sp_y, 3);
+        Graphics_setForegroundColor(&app->gfx.context, GRAPHICS_COLOR_WHITE);
+        app->refreshpickupshield = false;
+    }
 }
 
 void danger(Application* app, HAL* hal)
 {
     app->distance_player_danger = sqrt(pow(app->player_x - app->d_x, 2) + pow(app->player_y - app->d_y, 2)); //distance_player_danger between player and danger (within shield)
 
-    if(app->distance_player_danger < 6 && app->new_danger == false) //danger respawns after player is hurt through contact after a given time
+    if(app->distance_player_danger < MIN_DIST && app->new_danger == false) //danger respawns after player is hurt through contact after a given time
     {
         app->new_danger = true;
         if(app->just_died == true) //with BONUS FEATURE: INVULNERABILITY
@@ -855,6 +868,9 @@ void shield(Application* app, HAL* hal)
 
 void update_shield_pos(Application* app, HAL* hal)
 {
+
+    app->refreshpickupshield = true;
+
     //erases player's shield at previous position and prints new one
     Graphics_setForegroundColor(&app->gfx.context, GRAPHICS_COLOR_BLACK);
     Graphics_drawCircle(&app->gfx.context, app->oldpos_x, app->oldpos_y, 20);

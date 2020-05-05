@@ -42,6 +42,7 @@ struct _Application
     bool position_change; //flag to check if the player's position has changed
     bool game_has_started;
     bool firstpickupshield;
+    bool refreshpickupshield;
 
     float delta;
 
