@@ -135,7 +135,7 @@ Application Application_construct()
     app.newdangertime = SWTimer_construct(NEW_DANGER_TIME); //a new danger is spawned every 3 seconds after the avatar's death
     SWTimer_start(&app.newdangertime);
 
-    app.invulnerable = SWTimer_construct(6000); //player is invulnerable for 6 seconds after being hurt
+    app.invulnerable = SWTimer_construct(3000); //player is invulnerable for 6 seconds after being hurt
     SWTimer_start(&app.invulnerable);
 
     //Game should begin with splash screen, indicated by a value if 0
@@ -157,6 +157,8 @@ Application Application_construct()
     app.scores[2] = 0;
     app.scores[3] = 0;
     app.scores[4] = 0;
+
+    app.a = 5;
 
     app.delta = SLOW; //by default the speed is slow when a joystick is tilted
 
@@ -243,7 +245,7 @@ void splash_screen(Application* app, HAL* hal)
     Graphics_drawImage(&app->gfx.context, &pacman4BPP_UNCOMP, 38, 0);
     Graphics_drawString(&app->gfx.context, "Avatar", -1, 41, 60, false);
     Graphics_drawString(&app->gfx.context, "Vs", -1, 51, 75, false);
-    Graphics_drawString(&app->gfx.context, "Dangers", -1, 41, 90, false);
+    Graphics_drawString(&app->gfx.context, "danger", -1, 41, 90, false);
     app->SCREENMODE = SCREEN1; //after Timer Ends (in 1.5 seconds), application moves to menu screen
 }
 
@@ -273,7 +275,6 @@ void menu_screen(Application* app, HAL* hal)
         app->SCREENMODE = (app->menu_options + 1); //As the screen modes for the three options are 2, 3 and 4 respectively
         app->STATIC_SCREEN_MODE = CHANGES;
         SWTimer_start(&app->menuscreen);
-
     }
 }
 
@@ -287,9 +288,10 @@ void playgame_screen(Application* app, HAL* hal)
     meterdisplay(app, hal);
 
     player(app, hal);
-    shield_pickup(app, hal);
     shield(app, hal);
-    dangers(app, hal);
+    difficultylevels(app, hal);
+    shield_pickup(app, hal);
+    danger(app, hal);
 
     app->STATIC_SCREEN_MODE = FIXED;
 
@@ -308,14 +310,14 @@ void howtoplay_screen(Application* app, HAL* hal)
     Graphics_drawString(&app->gfx.context, "-------------------------------------", -1, 0, 6, false);
 
     Graphics_drawString(&app->gfx.context, "Avoid all the RED", -1, 5, 15, false);
-    Graphics_drawString(&app->gfx.context, "dangers! Collect Yellow", -1, 5, 25, false);
+    Graphics_drawString(&app->gfx.context, "danger! Collect Yellow", -1, 5, 25, false);
     Graphics_drawString(&app->gfx.context, "shield points by", -1, 5, 35, false);
     Graphics_drawString(&app->gfx.context, "running into them.", -1, 5, 45, false);
     Graphics_drawString(&app->gfx.context, "Then, spend shield", -1, 5, 55, false);
     Graphics_drawString(&app->gfx.context, "points by pressing", -1, 5, 65, false);
     Graphics_drawString(&app->gfx.context, "B2 to get a temporary", -1, 5, 75, false);
     Graphics_drawString(&app->gfx.context, "shield which destroys", -1, 5, 85, false);
-    Graphics_drawString(&app->gfx.context, "RED dangers. Score by", -1, 5, 95, false);
+    Graphics_drawString(&app->gfx.context, "RED danger. Score by", -1, 5, 95, false);
     Graphics_drawString(&app->gfx.context, "destroying REDs.", -1, 5, 105, false);
 
     Graphics_setForegroundColor(&app->gfx.context, GRAPHICS_COLOR_YELLOW);
@@ -335,11 +337,6 @@ void howtoplay_screen(Application* app, HAL* hal)
 void highscores_screen(Application* app, HAL* hal)
 {
     bbgdisplay(app, hal);
-
-    if(app->STATIC_SCREEN_MODE == CHANGES)
-    {
-        scores_sort(app, hal);
-    }
 
     Graphics_drawString(&app->gfx.context, "High Scores", -1, 0, 0, false);
     Graphics_drawString(&app->gfx.context, "-------------------------------------", -1, 0, 6, false);
@@ -392,13 +389,25 @@ void scores_sort(Application* app, HAL* hal)
 {
     int i = 0, j;
 
-    if(app->no_of_times_played > 0 && app->no_of_times_played <= 5) //for five games played
-    {
         app->scores[app->count] = app->score;
         app->count++;
-    }
 
     int temp;
+
+    if(app->count > 5)
+    {
+        for (i = 0; i < app->a; i++)
+        for (j = 0; j < app->a-i; j++)
+            if (app->scores[j] < app->scores[j+1])
+            {
+                temp = app->scores[j];
+                app->scores[j] = app->scores[j+1];
+                app->scores[j+1] = temp;
+            }
+        app->a++;
+    }
+    else
+    {
 
         for (i = 0; i < 4; i++)
         for (j = 0; j < 4-i; j++)
@@ -408,6 +417,8 @@ void scores_sort(Application* app, HAL* hal)
                 app->scores[j] = app->scores[j+1];
                 app->scores[j+1] = temp;
             }
+    }
+
 }
 
 void gameoverscreen(Application* app, HAL* hal)
@@ -452,6 +463,11 @@ void gameoverscreen(Application* app, HAL* hal)
                         Graphics_drawString(&app->gfx.context, "Press", -1, 48, 30, false);
                         Graphics_drawString(&app->gfx.context, "JS FOR", -1, 48, 40, false);
                         Graphics_drawString(&app->gfx.context, "-MENU", -1, 45, 50, false);
+
+                        if(app->STATIC_SCREEN_MODE == CHANGES)
+                        {
+                            scores_sort(app, hal);
+                        }
 
                         app->STATIC_SCREEN_MODE = FIXED;
 
@@ -732,7 +748,7 @@ void shield_pickup(Application* app, HAL* hal)
     }
 }
 
-void dangers(Application* app, HAL* hal)
+void danger(Application* app, HAL* hal)
 {
     app->distance_player_danger = sqrt(pow(app->player_x - app->d_x, 2) + pow(app->player_y - app->d_y, 2)); //distance_player_danger between player and danger (within shield)
 
@@ -878,4 +894,16 @@ bool joystickpush(HAL* hal)
 {
     return (Button_isPressed(&hal->boosterpackJS));
 }
+
+void difficultylevels(Application* app, HAL* hal)
+{
+    if(Button_isTapped(&hal->boosterpackS1))
+    {
+        if(app->difficulty < 3)
+            app->difficulty++;
+        else
+            app->difficulty = 0;
+    }
+}
+
 

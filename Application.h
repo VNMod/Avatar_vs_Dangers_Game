@@ -27,9 +27,10 @@ struct _Application
 
     int health;
     int score;
-    int scores[5];
+    int scores[100];
 
     int count;
+    int a; //counter variable used when more than five games have been played
 
     int shield_points;
     int difficulty; //ranges from 0-3
@@ -47,21 +48,23 @@ struct _Application
 
     float distance_player_danger;
 
+    float distance_shield_player;
+
     bool dead_danger; //when a danger dies, a new danger is true
     bool new_danger; //flag for when a new danger must respawn
     bool new_shield; //flag for when a new shield can appear
     bool just_died; //flag to check if the avatar just died
     bool just_died_again; //flag to check if the avatar died again
-    float distance_shield_player;
+
 
     float oldpos_x;
     float oldpos_y;
 
-    int sp_x; //x coordinate for shield pickup
-    int sp_y; //y coordinate for shield pickup
+    int sp_x; //x coordinate for shield pickups
+    int sp_y; //y coordinate for shield pickups
 
-    int d_x; //x coordinate for dangers
-    int d_y; //y coordinate for dangers
+    int d_x; //x coordinate for danger
+    int d_y; //y coordinate for danger
 
     SWTimer splashscreen; //to display splash screen only for a given time
     SWTimer howtoplayscreen; //minimum time for which HOW TO PLAY screen is displayed
@@ -132,7 +135,7 @@ void update_player_pos(Application* app, HAL* hal);
 void shield_pickup(Application* app, HAL* hal);
 
 // Called to display the shield pick ups at random positions
-void dangers(Application* app, HAL* hal);
+void danger(Application* app, HAL* hal);
 
 // Called to enable shield
 void shield(Application* app, HAL* hal);
@@ -151,5 +154,8 @@ void scores_sort(Application* app, HAL* hal);
 
 // Called to display that the avatar has been hurt visibly
 void hurt_checker(Application* app, HAL* hal);
+
+// Called to change the difficulty level
+void difficultylevels(Application* app, HAL* hal);
 
 #endif /* APPLICATION_H_ */
