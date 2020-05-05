@@ -41,6 +41,7 @@ struct _Application
     bool B2pressed; //flag to check if boosterpack button S2 has been pressed
     bool position_change; //flag to check if the player's position has changed
     bool game_has_started;
+    bool firstpickupshield;
 
     float delta;
 
@@ -54,7 +55,6 @@ struct _Application
     bool new_danger; //flag for when a new danger must respawn
     bool new_shield; //flag for when a new shield can appear
     bool just_died; //flag to check if the avatar just died
-    bool just_died_again; //flag to check if the avatar died again
 
 
     float oldpos_x;

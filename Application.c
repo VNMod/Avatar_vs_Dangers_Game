@@ -172,11 +172,15 @@ Application Application_construct()
 
     app.dead_danger = false; // game starts with a new danger so no danger has been killed yet
 
+    app.new_danger = false;
+
     app.difficulty = EASY; //difficulty begins at 0
 
     app.shield_points = MIN_SHIELD_POINTS; //players started with zero (0) shield points
 
     app.new_shield = true; //game must start with a shield
+
+    app.firstpickupshield = false;
 
     app.player_x = MID_SCREEN; //player starts at the center of the screen
 
@@ -199,8 +203,6 @@ Application Application_construct()
     app.B2pressed = false;
 
     app.just_died = true;
-
-    app.just_died_again = false;
 
     app.position_change = false; //no change in the player's position at the beginning
 
@@ -251,7 +253,7 @@ void splash_screen(Application* app, HAL* hal)
     Graphics_drawImage(&app->gfx.context, &pacman4BPP_UNCOMP, 38, 0);
     Graphics_drawString(&app->gfx.context, "Avatar", -1, 41, 60, false);
     Graphics_drawString(&app->gfx.context, "Vs", -1, 51, 75, false);
-    Graphics_drawString(&app->gfx.context, "danger", -1, 41, 90, false);
+    Graphics_drawString(&app->gfx.context, "Dangers", -1, 41, 90, false);
     app->SCREENMODE = SCREEN1; //after Timer Ends (in 1.5 seconds), application moves to menu screen
 }
 
@@ -589,6 +591,7 @@ void restart_game_stats(Application* app, HAL* hal)
     app->player_y = MID_SCREEN;
     app->score = MIN_SCORE;
     app->shield_points = MIN_SHIELD_POINTS;
+    app->firstpickupshield = false;
 }
 
 void meterdisplay(Application* app, HAL* hal)
@@ -721,37 +724,33 @@ void shield_pickup(Application* app, HAL* hal)
 {
     app->distance_shield_player = sqrt(pow(app->player_x - app->sp_x, 2) + pow(app->player_y - app->sp_y, 2));
 
-    if(app->distance_shield_player < 6)
+    if(app->distance_shield_player < 7 && app->new_shield == false)
     {
         app->shield_points++;
         Graphics_setForegroundColor(&app->gfx.context, GRAPHICS_COLOR_BLACK);
         Graphics_fillCircle(&app->gfx.context, app->sp_x, app->sp_y, 5);
-        app->sp_x = rand() % 112 + 10; //x - position of shield pick up in the range of 10 to 112
-        app->sp_y = rand() % 90 + 20; //y - position of shield pick up in the range of 20 to 90
         SWTimer_start(&app->newshieldtime);
+        app->new_shield = true;
     }
-    else if(app->new_shield == true)
+
+    if(app->game_has_started == true && app->firstpickupshield == false) //when the game starts, a shield is provided
     {
+        app->firstpickupshield = true;
+        Graphics_setForegroundColor(&app->gfx.context, GRAPHICS_COLOR_YELLOW);
+        Graphics_fillCircle(&app->gfx.context, app->sp_x, app->sp_y, 3);
+        Graphics_setForegroundColor(&app->gfx.context, GRAPHICS_COLOR_WHITE);
         app->new_shield = false;
+    }
+
+    if(SWTimer_expired(&app->newshieldtime) && app->new_shield == true)
+    {
+        app->sp_x = rand() % 112 + 10; //x - position of shield pick up in the range of 10 to 112
+        app->sp_y = rand() % 90 + 20; //y - position of shield pick up in the range of 20 to 9
         Graphics_setForegroundColor(&app->gfx.context, GRAPHICS_COLOR_YELLOW);
         Graphics_fillCircle(&app->gfx.context, app->sp_x, app->sp_y, 3);
         Graphics_setForegroundColor(&app->gfx.context, GRAPHICS_COLOR_WHITE);
         SWTimer_start(&app->newshieldtime);
-    }
-
-    if(app->game_has_started == true) //when the game starts, a shield is provided
-    {
-        app->game_has_started = false;
-        Graphics_setForegroundColor(&app->gfx.context, GRAPHICS_COLOR_YELLOW);
-        Graphics_fillCircle(&app->gfx.context, app->sp_x, app->sp_y, 3);
-        Graphics_setForegroundColor(&app->gfx.context, GRAPHICS_COLOR_WHITE);
-    }
-
-    if(SWTimer_expired(&app->newshieldtime))
-    {
-        Graphics_setForegroundColor(&app->gfx.context, GRAPHICS_COLOR_YELLOW);
-        Graphics_fillCircle(&app->gfx.context, app->sp_x, app->sp_y, 3);
-        Graphics_setForegroundColor(&app->gfx.context, GRAPHICS_COLOR_WHITE);
+        app->new_shield = false;
     }
 }
 
@@ -759,15 +758,14 @@ void danger(Application* app, HAL* hal)
 {
     app->distance_player_danger = sqrt(pow(app->player_x - app->d_x, 2) + pow(app->player_y - app->d_y, 2)); //distance_player_danger between player and danger (within shield)
 
-    if(app->distance_player_danger < 6) //danger respawns after player is hurt through contact
+    if(app->distance_player_danger < 6 && app->new_danger == false) //danger respawns after player is hurt through contact after a given time
     {
+        app->new_danger = true;
         if(app->just_died == true) //with BONUS FEATURE: INVULNERABILITY
         {
             app->health--;
             Graphics_setForegroundColor(&app->gfx.context, GRAPHICS_COLOR_BLACK);
             Graphics_fillCircle(&app->gfx.context, app->d_x, app->d_y, 5);
-            app->d_x = rand() % 112 + 10; //x - position of the danger up in the range of 10 to 112
-            app->d_y = rand() % 90 + 20; //y - position of the danger up in the range of 20 to 90
             SWTimer_start(&app->newdangertime);
             SWTimer_start(&app->invulnerable);
             app->just_died = false;
@@ -777,54 +775,43 @@ void danger(Application* app, HAL* hal)
             app->health--;
             Graphics_setForegroundColor(&app->gfx.context, GRAPHICS_COLOR_BLACK);
             Graphics_fillCircle(&app->gfx.context, app->d_x, app->d_y, 5);
-            app->d_x = rand() % 112 + 10; //x - position of the danger up in the range of 10 to 112
-            app->d_y = rand() % 90 + 20; //y - position of the danger up in the range of 20 to 90
+            SWTimer_start(&app->newdangertime);
             SWTimer_start(&app->invulnerable);
-            SWTimer_start(&app->newdangertime);
-            app->just_died_again = true;
-        }
-        else if(app->just_died_again == true)
-        {
-            app->just_died_again = false;
-            Graphics_setForegroundColor(&app->gfx.context, GRAPHICS_COLOR_BLACK);
-            Graphics_fillCircle(&app->gfx.context, app->d_x, app->d_y, 5);
-            app->d_x = rand() % 112 + 10; //x - position of the danger up in the range of 10 to 112
-            app->d_y = rand() % 90 + 20; //y - position of the danger up in the range of 20 to 90
-            SWTimer_start(&app->newdangertime);
         }
         else //with BONUS FEATURE: INVULNERABILITY
         {
             Graphics_setForegroundColor(&app->gfx.context, GRAPHICS_COLOR_BLACK);
             Graphics_fillCircle(&app->gfx.context, app->d_x, app->d_y, 5);
-            app->d_x = rand() % 112 + 10; //x - position of the danger up in the range of 10 to 112
-            app->d_y = rand() % 90 + 20; //y - position of the danger up in the range of 20 to 90
             SWTimer_start(&app->newdangertime);
         }
     }
     else if(app->dead_danger == true) //danger respawns after shield kills a danger
     {
         app->dead_danger = false;
+        app->new_danger = true;
         app->score++;
         Graphics_setForegroundColor(&app->gfx.context, GRAPHICS_COLOR_BLACK);
         Graphics_fillCircle(&app->gfx.context, app->d_x, app->d_y, 5);
-        app->d_x = rand() % 112 + 10; //x - position of the danger up in the range of 10 to 112
-        app->d_y = rand() % 90 + 20; //y - position of the danger up in the range of 20 to 90
         SWTimer_start(&app->newdangertime);
     }
 
     if(app->game_has_started == true) //when the game starts, a danger appears
     {
-        app->game_has_started = false;
+        if(app->firstpickupshield == true)
+            app->game_has_started = false;
         Graphics_setForegroundColor(&app->gfx.context, GRAPHICS_COLOR_RED);
         Graphics_fillCircle(&app->gfx.context, app->d_x, app->d_y, 3);
         Graphics_setForegroundColor(&app->gfx.context, GRAPHICS_COLOR_WHITE);
     }
 
-    if(SWTimer_expired(&app->newdangertime))
+    if(SWTimer_expired(&app->newdangertime) && app->new_danger == true)
     {
+        app->d_x = rand() % 112 + 10; //x - position of the danger up in the range of 10 to 112
+        app->d_y = rand() % 90 + 20; //y - position of the danger up in the range of 20 to 90
         Graphics_setForegroundColor(&app->gfx.context, GRAPHICS_COLOR_RED);
         Graphics_fillCircle(&app->gfx.context, app->d_x, app->d_y, 3);
         Graphics_setForegroundColor(&app->gfx.context, GRAPHICS_COLOR_WHITE);
+        app->new_danger = false;
     }
 
 }
@@ -832,7 +819,7 @@ void danger(Application* app, HAL* hal)
 void kill_danger(Application* app, HAL* hal)
 {
     app->distance_player_danger = sqrt(pow(app->player_x - app->d_x, 2) + pow(app->player_y - app->d_y, 2)); //distance_player_danger between player and danger (within shield)
-    if(app->distance_player_danger <= 20) //if red danger is within the shield's field, danger is killed
+    if(app->distance_player_danger <= 20 && app->new_danger == false) //if red danger is within the shield's field, danger is killed
     {
         Graphics_setForegroundColor(&app->gfx.context, GRAPHICS_COLOR_BLACK);
         Graphics_fillCircle(&app->gfx.context, app->d_x, app->d_y, 5);
