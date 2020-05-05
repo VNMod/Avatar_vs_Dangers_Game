@@ -48,12 +48,18 @@
 #define NEW_DANGER_TIME 3000
 #define BUFFER_SIZE 5 //buffer size for printf
 #define NO_GAMES_PLAYED 0
+#define INVULNERABILITYTIME 6000
+#define MID_SCREEN 60
 
 #define SHIELDTIME 1500 //1.5 seconds for a shield
 #define DEAD 0
 #define MAX_HEALTH 3
 #define MIN_SCORE 0
 #define MIN_SHIELD_POINTS 0
+#define EASY 0
+#define NOSCORE 0
+#define DEFAULT_SCORE 0
+#define NO_COUNT 0
 
 #define PLAYER_X_MAX 120
 #define PLAYER_X_MIN 10
@@ -135,30 +141,30 @@ Application Application_construct()
     app.newdangertime = SWTimer_construct(NEW_DANGER_TIME); //a new danger is spawned every 3 seconds after the avatar's death
     SWTimer_start(&app.newdangertime);
 
-    app.invulnerable = SWTimer_construct(3000); //player is invulnerable for 6 seconds after being hurt
+    app.invulnerable = SWTimer_construct(6000); //player is invulnerable for 6 seconds after being hurt
     SWTimer_start(&app.invulnerable);
 
     //Game should begin with splash screen, indicated by a value if 0
     app.SCREENMODE = SPLASHSCREEN;
 
     //As the game does not begin with the menu screen, this flag is initialized to be 0
-    app.STATIC_SCREEN_MODE = 0;
+    app.STATIC_SCREEN_MODE = false;
 
     //This corresponds to any of the three menu options and the pointer starts with the first option, hence 1
     app.menu_options = PLAYGAME;
 
     app.health = 3; // players start with three health points
 
-    app.score = 0; //players start with a zero (0) score
-    app.count = 0;
+    app.score = NOSCORE; //players start with a zero (0) score
+    app.count = NO_COUNT;
 
-    app.scores[0] = 0;
-    app.scores[1] = 0;
-    app.scores[2] = 0;
-    app.scores[3] = 0;
-    app.scores[4] = 0;
+    app.scores[0] = DEFAULT_SCORE;
+    app.scores[1] = DEFAULT_SCORE;
+    app.scores[2] = DEFAULT_SCORE;
+    app.scores[3] = DEFAULT_SCORE;
+    app.scores[4] = DEFAULT_SCORE;
 
-    app.a = 5;
+    app.a = 5; //a counter variable
 
     app.delta = SLOW; //by default the speed is slow when a joystick is tilted
 
@@ -166,19 +172,19 @@ Application Application_construct()
 
     app.dead_danger = false; // game starts with a new danger so no danger has been killed yet
 
-    app.difficulty = 0; //difficulty begins at 0
+    app.difficulty = EASY; //difficulty begins at 0
 
-    app.shield_points = 0; //players started with zero (0) shield points
+    app.shield_points = MIN_SHIELD_POINTS; //players started with zero (0) shield points
 
     app.new_shield = true; //game must start with a shield
 
-    app.player_x = 60; //player starts at the center of the screen
+    app.player_x = MID_SCREEN; //player starts at the center of the screen
 
-    app.player_y = 60; //player starts at the center of the screen
+    app.player_y = MID_SCREEN; //player starts at the center of the screen
 
-    app.oldpos_x = 60; //player starts at the center of the screen
+    app.oldpos_x = MID_SCREEN; //player starts at the center of the screen
 
-    app.oldpos_y = 60; //player starts at the center of the screen
+    app.oldpos_y = MID_SCREEN; //player starts at the center of the screen
 
     app.sp_x = rand() % 110 + 15; //random position for the x-coordinate of a shield
 
@@ -575,11 +581,12 @@ void restart_game_stats(Application* app, HAL* hal)
     app->no_of_times_played++;
     app->game_has_started = true;
     app->just_died = true;
+    app->dead_danger = false;
     app->health = MAX_HEALTH;
-    app->oldpos_x = 60;
-    app->oldpos_y = 60;
-    app->player_x = 60;
-    app->player_y = 60;
+    app->oldpos_x = MID_SCREEN;
+    app->oldpos_y = MID_SCREEN;
+    app->player_x = MID_SCREEN;
+    app->player_y = MID_SCREEN;
     app->score = MIN_SCORE;
     app->shield_points = MIN_SHIELD_POINTS;
 }
@@ -734,10 +741,10 @@ void shield_pickup(Application* app, HAL* hal)
 
     if(app->game_has_started == true) //when the game starts, a shield is provided
     {
+        app->game_has_started = false;
         Graphics_setForegroundColor(&app->gfx.context, GRAPHICS_COLOR_YELLOW);
         Graphics_fillCircle(&app->gfx.context, app->sp_x, app->sp_y, 3);
         Graphics_setForegroundColor(&app->gfx.context, GRAPHICS_COLOR_WHITE);
-        SWTimer_start(&app->newshieldtime);
     }
 
     if(SWTimer_expired(&app->newshieldtime))
@@ -778,6 +785,7 @@ void danger(Application* app, HAL* hal)
         }
         else if(app->just_died_again == true)
         {
+            app->just_died_again = false;
             Graphics_setForegroundColor(&app->gfx.context, GRAPHICS_COLOR_BLACK);
             Graphics_fillCircle(&app->gfx.context, app->d_x, app->d_y, 5);
             app->d_x = rand() % 112 + 10; //x - position of the danger up in the range of 10 to 112
@@ -810,7 +818,6 @@ void danger(Application* app, HAL* hal)
         Graphics_setForegroundColor(&app->gfx.context, GRAPHICS_COLOR_RED);
         Graphics_fillCircle(&app->gfx.context, app->d_x, app->d_y, 3);
         Graphics_setForegroundColor(&app->gfx.context, GRAPHICS_COLOR_WHITE);
-        SWTimer_start(&app->newdangertime);
     }
 
     if(SWTimer_expired(&app->newdangertime))
@@ -825,7 +832,7 @@ void danger(Application* app, HAL* hal)
 void kill_danger(Application* app, HAL* hal)
 {
     app->distance_player_danger = sqrt(pow(app->player_x - app->d_x, 2) + pow(app->player_y - app->d_y, 2)); //distance_player_danger between player and danger (within shield)
-    if(app->distance_player_danger < 20) //if red danger is within the shield's field, danger is killed
+    if(app->distance_player_danger <= 20) //if red danger is within the shield's field, danger is killed
     {
         Graphics_setForegroundColor(&app->gfx.context, GRAPHICS_COLOR_BLACK);
         Graphics_fillCircle(&app->gfx.context, app->d_x, app->d_y, 5);
