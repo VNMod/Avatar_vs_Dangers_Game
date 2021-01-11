@@ -1,5 +1,7 @@
 # Avatar_vs_Dangers_Game
 
+### Date: April 2020
+
 ## Overview:
 
 This is a 2-D game playable on TI's MSP432P401R microcontroller and viewable on the LCD screen attached on the BoosterPack MKII. The **objective** of the game is to avoid all the red dangers, score points by destroying them using temporary shields and collect yellow shield points to restock on shields. It is a small embedded software application that uses software timers, proper low-level graphics rendering techniques and is interfaced with an analog stick and buttons (on the boosterpack).
